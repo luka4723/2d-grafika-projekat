@@ -22,9 +22,6 @@ add_executable(2d-grafika-projekat
         Cpp/texture.cpp
         Cpp/camera.cpp
         Cpp/stb_image.cpp
-        Headers/object.hpp
-        Headers/object.hpp
-        Cpp/object.cpp
         Cpp/object.cpp
 )
 
@@ -48,8 +45,8 @@ add_custom_target(copy_resources ALL
         ${CMAKE_SOURCE_DIR}/Resources
         ${CMAKE_BINARY_DIR}/Resources
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/GLSLs
-        ${CMAKE_BINARY_DIR}/GLSLs
+        ${CMAKE_SOURCE_DIR}/Glsls
+        ${CMAKE_BINARY_DIR}/Glsls
 )
 
 # ---- Neka executable zavisi od copy_resources ----
