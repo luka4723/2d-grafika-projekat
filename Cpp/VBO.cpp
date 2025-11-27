@@ -6,6 +6,12 @@ VBO::VBO(const GLfloat* vertices, const GLsizeiptr size)
     glBindBuffer(GL_ARRAY_BUFFER,ID);
     glBufferData(GL_ARRAY_BUFFER,size,vertices,GL_STATIC_DRAW);
 }
+VBO::VBO(const particle_t* vertices, const GLsizeiptr size)
+{
+    glGenBuffers(1,&ID);
+    glBindBuffer(GL_ARRAY_BUFFER,ID);
+    glBufferData(GL_ARRAY_BUFFER,size,vertices,GL_STATIC_DRAW);
+}
 
 void VBO::Bind() const
 {
@@ -19,8 +25,12 @@ void VBO::Delete()
 {
     glDeleteBuffers(1,&ID);
 }
-void VBO::changeArray(const GLfloat* vertices) {
+void VBO::changeArray(const GLfloat* vertices, const GLsizeiptr size) {
     glBindBuffer(GL_ARRAY_BUFFER,ID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size*sizeof(GLfloat), vertices);
+}
 
+void VBO::changeArray(const particle_t* vertices, const GLsizeiptr size) {
+    glBindBuffer(GL_ARRAY_BUFFER,ID);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, vertices);
 }

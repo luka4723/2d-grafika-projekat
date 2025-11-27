@@ -17,8 +17,6 @@
 #include "camera.hpp"
 #include "object.hpp"
 
-
-
 int main() {
 	srand(time(nullptr));
 	if (windowinit(SCR_WIDTH, SCR_HEIGHT, "Moj OpenGL Prozor") != 0) return -1;
@@ -30,6 +28,7 @@ int main() {
 	float texpos = 0;
 	GLuint carIndices[6] = {0, 1, 2, 0, 3, 2};
 	myShader = new Shader("Glsls/vShader.glsl", "Glsls/fShader.glsl");
+	Shader smokeShader("Glsls/smokeVshader.glsl", "Glsls/smokeFshader.glsl");
 
 	makeMap(vertices);
 	makeMap(vertices2);
@@ -52,6 +51,15 @@ int main() {
 	car = new object("auto",-0.2f*aspect,-0.8f,verts.data(),carIndices,sizeof(float)*verts.size(),sizeof(carIndices));
 	car->setHitbox(car->xOff+0.06f,car->yOff,0.22f*aspect,0.405f);
 
+	for (auto & particle : particles) respawnParticle(particle);
+	VAO dots;
+	dots.Bind();
+	VBO dotVBO(particles,sizeof(particles));
+	dots.LinkAttrib(dotVBO,0,2,GL_FLOAT,sizeof(particle_t),nullptr);
+	dots.Unbind();
+	smokeShader.setVec2("cent",glm::vec2((car->hitbox.x+0.037f+car->hitbox.x+0.037f+0.075f)/2,car->yOff));
+	smokeShader.setVec3("col",0.1,0.1,0.1);
+
     auto map_tileset = Texture("resources/test2.png",GL_TEXTURE_2D,GL_TEXTURE0,GL_UNSIGNED_BYTE,GL_REPEAT,0);
 	map_tileset.Bind();
 	map_tileset.texUnit(*myShader, "sheet");
@@ -60,7 +68,6 @@ int main() {
 	double spawnInterval = random(3,3);
 
 	double map1Loc=0,map2Loc=2;
-	glm::vec4 pecurkaOverlay = glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -69,7 +76,9 @@ int main() {
 		lastFrame = currentFrame;
 
 		const double crntTime = glfwGetTime();
-
+		smokeShader.Activate();
+		smokeShader.setVec2("cent",glm::vec2((car->hitbox.x+0.037f+car->hitbox.x+0.037f+0.075f)/2,car->yOff));
+		myShader->Activate();
 		if (crntTime - prevEvent >= spawnInterval)
 		{
 			object_sizex = 0.27f;
@@ -89,14 +98,16 @@ int main() {
 			pecurkaActive = false;
 			prevPecurka = crntTime;
 			myShader->setFloat("alfa",0.0f);
+			smokeShader.Activate();
+			smokeShader.setVec3("col",0.1,0.1,0.1);
+			myShader->Activate();
+
 		}
 		if  (crntTime - prevPotion >= 5.0f) potionFactor = 1.0f;
 
 		processInput(window);
 
 		glClear(GL_COLOR_BUFFER_BIT);
-
-		myShader->Activate();
 
 		map1Loc -= 0.2f*deltaTime;
 		map2Loc -= 0.2f*deltaTime;
@@ -113,12 +124,12 @@ int main() {
 
 		if (map1Loc < -2) {
 			makeMap(vertices);
-			map1.changeArray(vertices);
+			map1.changeArray(vertices,sizeof(vertices)/sizeof(float));
 			map1Loc += 4.0f;
 		}
 		if (map2Loc < -2) {
 			makeMap(vertices2);
-			map2.changeArray(vertices2);
+			map2.changeArray(vertices2,sizeof(vertices)/sizeof(float));
 			map2Loc += 4.0f;
 		}
 
@@ -126,11 +137,30 @@ int main() {
 		for (object* obj : pickups) obj->draw(0.2f*deltaTime);
 		checkCollisions();
 
-		if (pecurkaActive) {
+		for (auto & p : particles) {
+			p.life -= deltaTime;
+			if (p.life > 0.0f) {
+				p.x += p.dx * deltaTime;
+				p.y += p.dy * deltaTime;
+			} else respawnParticle(p);
+		}
 
+		smokeShader.Activate();
+		dots.Bind();
+		dotVBO.changeArray(particles,MAX_PARTICLES * sizeof(particle_t));
+		glDrawArrays(GL_POINTS, 0, MAX_PARTICLES);
+		myShader->Activate();
+
+		if (pecurkaActive) {
+			smokeShader.Activate();
+			smokeShader.setVec3("col",
+				glm::sin(static_cast<float>(crntTime)*2.0f) * 0.5f + 0.5f,
+				glm::sin(static_cast<float>(crntTime)*2.0f+ 2.094f) * 0.5f + 0.5f,
+				glm::sin(static_cast<float>(crntTime)*2.0f+ 4.188f) * 0.5f + 0.5f);
+			myShader->Activate();
 			const float t = static_cast<float>(crntTime) * 1.5f;
 
-			filt1.r += (glm::sin(random(1,5)*t)) * 0.005f;
+			/*filt1.r += (glm::sin(random(1,5)*t)) * 0.005f;
 			filt1.g += (glm::sin(random(1,5)*t)) * 0.005f;
 			filt1.b += (glm::sin(random(1,5)*t)) * 0.005f;
 
@@ -149,13 +179,15 @@ int main() {
 			filt1 = glm::clamp(filt1, glm::vec4(0.0f), glm::vec4(1.0f));
 			filt2 = glm::clamp(filt2, glm::vec4(0.0f), glm::vec4(1.0f));
 			filt3 = glm::clamp(filt3, glm::vec4(0.0f), glm::vec4(1.0f));
-			filt4 = glm::clamp(filt4, glm::vec4(0.0f), glm::vec4(1.0f));
+			filt4 = glm::clamp(filt4, glm::vec4(0.0f), glm::vec4(1.0f));*/
 
 			myShader->setVec4("filterColor1", filt1);
 			myShader->setVec4("filterColor2", filt2);
 			myShader->setVec4("filterColor3", filt3);
 			myShader->setVec4("filterColor4", filt4);
 		}
+
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

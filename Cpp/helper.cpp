@@ -55,7 +55,7 @@ void processInput(GLFWwindow *win)
     if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS) {
         Shader testShader("Glsls/testVShader.glsl", "Glsls/testFShader.glsl");
         testShader.Activate();
-        for (object* obj : pickups) {
+        for (const object* obj : pickups) {
             float testVerts[] = {
                 obj->hitbox.x, obj->hitbox.y,
                 obj->hitbox.x + obj->hitbox.w, obj->hitbox.y,
@@ -140,13 +140,16 @@ int windowinit(const int width, const int height, const char* title)
     }
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     return 0;
 }
+
+std::random_device rd;
+std::mt19937 mt(rd());
 float random(const int a, const int b) {
-    static std::mt19937 rng(std::random_device{}()); // inicijalizacija generatora
     std::uniform_int_distribution<int> dist(a, b);
-    return static_cast<float>(dist(rng));
+    return static_cast<float>(dist(mt));
 }
 void coordSetter(float* verts, const float px, const float py,int &i, const int pos, const float off) {
     float deltaX;
@@ -201,20 +204,50 @@ std::array<float,20> makeArray(const float object_sizex, const float object_size
     return verts;
 }
 
-float getColor() {
-    if (random(0, 100) < 50) return random(0, 20) / 100.0f;
-    return random(80, 100) / 100.0f;
+glm::vec4 HSVtoRGB(const float h) {
+    constexpr float s = 0.8f;
+    constexpr float v = 0.6f;
+    float r, g, b;
+
+    const float i =h * 6;
+    const float f = h * 6 - i;
+    const float p = v * (1 - s);
+    const float q = v * (1 - f * s);
+    const float t = v * (1 - (1 - f) * s);
+
+    switch(static_cast<int>(i) % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+        default: r=0; g=0; b=0; break;
+    }
+
+    return {r, g, b,1};
+}
+
+
+std::vector<float> randomSaturatedColor() {
+    std::vector<float> res{};
+    res.reserve(4);
+    for(int i = 0; i < 4; i++) {
+        res.push_back(i * 0.25f +random(1,100)/100);
+    }
+    return res;
 }
 
 void handleCollision(const std::string& ime) {
     if (ime == "pecurka") {
         pecurkaActive = true;
         prevPecurka = glfwGetTime();
-        myShader->setFloat("alfa",0.45f);
-        filt1 = glm::vec4(getColor(),getColor(),getColor(),1.0f);
-        filt2 = glm::vec4(getColor(),getColor(),getColor(),1.0f);
-        filt3 = glm::vec4(getColor(),getColor(),getColor(),1.0f);
-        filt4 = glm::vec4(getColor(),getColor(),getColor(),1.0f);
+        myShader->setFloat("alfa",0.5f);
+        const std::vector<float> hsl = randomSaturatedColor();
+        filt1 = HSVtoRGB(hsl[0]);
+        filt2 = HSVtoRGB(hsl[1]);
+        filt3 = HSVtoRGB(hsl[2]);
+        filt4 = HSVtoRGB(hsl[3]);
     }
     else if (ime == "potion") {
         prevPotion = glfwGetTime();
@@ -228,9 +261,17 @@ void checkCollisions() {
         hitbox box2 = obj->hitbox;
         if ((box1.x<box2.x+box2.w && box1.x + box1.w > box2.x)&&
             (box1.y < box2.y + box2.h &&box1.y + box1.h > box2.y)) {
-            handleCollision(obj->ime);
-            delete obj;
-            pickups.erase(std::remove(pickups.begin(), pickups.end(), obj), pickups.end());
+                handleCollision(obj->ime);
+                delete obj;
+                pickups.erase(std::remove(pickups.begin(), pickups.end(), obj), pickups.end());
             }
     }
+}
+
+void respawnParticle(particle_t &p) {
+    p.x = random(1,2)==1?car->hitbox.x+0.037f:car->hitbox.x+0.037f+0.075f;
+    p.y = car->yOff;
+    p.dx = (random(0, 100)-50)/1000.0f*1.2f; // (-0.05 0.05)*1.2
+    p.dy = -0.1f-random(0, 50)/100.0f;
+    p.life = random(0, 50)/100.0f;
 }

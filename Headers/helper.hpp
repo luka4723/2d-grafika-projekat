@@ -8,6 +8,7 @@
 #include "object.hpp"
 #include "shader.hpp"
 
+#define MAX_PARTICLES 200
 extern GLFWwindow* window;
 
 extern int SCR_WIDTH;
@@ -35,6 +36,12 @@ extern glm::vec4 filt1;
 extern glm::vec4 filt2;
 extern glm::vec4 filt3;
 extern glm::vec4 filt4;
+struct particle_t
+{
+    float x, y, dx, dy,life;
+};
+
+inline particle_t particles[MAX_PARTICLES];
 
 
 void framebuffer_size_callback(int width, int height);
@@ -45,10 +52,8 @@ void makeMap(float* vert);
 void coordSetter(float* verts, float px,  float py,int &i,  int pos,  float off);
 float random(int a, int b);
 void handleCollision(const std::string& ime);
-float getColor();
 std::array<float,20> makeArray( float object_sizex,  float object_sizey,  float texpos);
 void checkCollisions();
-
-
+void respawnParticle(particle_t &p);
 
 #endif
