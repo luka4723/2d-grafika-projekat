@@ -101,7 +101,6 @@ int main() {
 			smokeShader.Activate();
 			smokeShader.setVec3("col",0.1,0.1,0.1);
 			myShader->Activate();
-
 		}
 		if  (crntTime - prevPotion >= 5.0f) potionFactor = 1.0f;
 
