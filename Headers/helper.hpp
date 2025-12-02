@@ -26,6 +26,7 @@ extern constexpr int tilesY = 6;
 extern constexpr float tileSize = 32.0f;
 extern constexpr float offset = 1.0f/17;
 extern Shader* myShader;
+extern Shader* screenShader;
 extern object* car;
 extern std::vector<object*> pickups;
 extern std::vector<object*> dangers;
@@ -33,6 +34,8 @@ extern float potionFactor;
 extern double prevPotion;
 extern double prevPecurka;
 extern double prevRaketa;
+extern double prevEvent;
+extern double prevSpeed;
 extern bool pecurkaActive;
 extern bool blur;
 extern glm::vec4 filt1;
@@ -43,6 +46,7 @@ extern float k;
 extern float alfa;
 extern GLuint framebuffer;
 extern GLuint screenTex;
+extern float pause;
 struct particle_t
 {
     float x, y, dx, dy,life;

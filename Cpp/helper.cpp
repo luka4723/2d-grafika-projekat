@@ -18,11 +18,14 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 object* car = nullptr;
 Shader* myShader = nullptr;
+Shader* screenShader = nullptr;
 std::vector<object*> pickups;
 std::vector<object*> dangers;
 float potionFactor = 1.0f;
 double prevPecurka;
 double prevPotion;
+double prevEvent = 0;
+double prevSpeed = 0;
 double prevRaketa;
 bool pecurkaActive=false;
 bool blur=false;
@@ -34,31 +37,59 @@ float k=70.0f;
 float alfa = 0.0f;
 GLuint framebuffer;
 GLuint screenTex;
+float pause = 0;
+double pauseTime;
+int rotation = 0;
+bool lastKeys[2] = { false };
 
 void processInput(GLFWwindow *win)
 {
     if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(win, true);
-    if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
-        if ((car->yOff <0.3f && potionFactor == 1.0f) || (car->yOff > -1.0 && potionFactor == -1.0f )) {
-            car->yOff+= 0.01f*potionFactor;
-            car->hitbox.y += 0.01f*potionFactor;
+    if (pause == 0) {
+        if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
+            if ((car->yOff <0.3f && potionFactor == 1.0f) || (car->yOff > -1.0 && potionFactor == -1.0f )) {
+                car->yOff+= 0.01f*potionFactor;
+                car->hitbox.y += 0.01f*potionFactor;
+            }
+        if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
+            if ((car->yOff > -1.0 && potionFactor == 1.0f) || (car->yOff <0.3f && potionFactor == -1.0f )) {
+                car->yOff-= 0.01f*potionFactor;
+                car->hitbox.y -= 0.01f*potionFactor;
+            }
+        if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
+            if ((car->xOff > -0.95f + 1.0/13 && potionFactor==1.0f) || (car->xOff <  0.95f - 1.0/13 - 0.4*aspect && potionFactor == -1.0f)) {
+                car->xOff-= 0.01f*aspect*potionFactor;
+                car->hitbox.x -= 0.01f*aspect*potionFactor;
+            }
+        if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
+            if ((car->xOff <  0.95f - 1.0/13 - 0.4*aspect && potionFactor==1.0f) || (car->xOff > -0.95f + 1.0/13 && potionFactor == -1.0f)) {
+                car->xOff+= 0.01f*aspect*potionFactor;
+                car->hitbox.x+=0.01f*aspect*potionFactor;
+            }
+    }
+    if (glfwGetKey(win, GLFW_KEY_P) == GLFW_PRESS && !lastKeys[0]) {
+        if (pause == 1) {
+            pause = 0;
+            prevEvent  += glfwGetTime() - pauseTime;
+            prevRaketa += glfwGetTime() - pauseTime;
+            prevPotion += glfwGetTime() - pauseTime;
+            prevSpeed  += glfwGetTime() - pauseTime;
         }
-    if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
-        if ((car->yOff > -1.0 && potionFactor == 1.0f) || (car->yOff <0.3f && potionFactor == -1.0f )) {
-            car->yOff-= 0.01f*potionFactor;
-            car->hitbox.y -= 0.01f*potionFactor;
+        else {
+            pause = 1;
+            pauseTime = glfwGetTime();
         }
-    if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
-        if ((car->xOff > -0.95f + 1.0/13 && potionFactor==1.0f) || (car->xOff <  0.95f - 1.0/13 - 0.4*aspect && potionFactor == -1.0f)) {
-            car->xOff-= 0.01f*aspect*potionFactor;
-            car->hitbox.x -= 0.01f*aspect*potionFactor;
-        }
-    if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
-        if ((car->xOff <  0.95f - 1.0/13 - 0.4*aspect && potionFactor==1.0f) || (car->xOff > -0.95f + 1.0/13 && potionFactor == -1.0f)) {
-            car->xOff+= 0.01f*aspect*potionFactor;
-            car->hitbox.x+=0.01f*aspect*potionFactor;
-        }
+        screenShader->Activate();
+        screenShader->setFloat("invert", pause);
+    }
+    if (glfwGetKey(win, GLFW_KEY_R) == GLFW_PRESS && !lastKeys[1]) {
+        rotation++;
+        rotation = rotation %4;
+        std::cout << rotation << std::endl;
+        screenShader->Activate();
+        screenShader->setInt("rotation", rotation);
+    }
     if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS) {
         Shader testShader("Glsls/testVShader.glsl", "Glsls/testFShader.glsl");
         testShader.Activate();
@@ -89,6 +120,9 @@ void processInput(GLFWwindow *win)
         }
         myShader->Activate();
     }
+
+    lastKeys[0] = glfwGetKey(win, GLFW_KEY_P) == GLFW_PRESS;
+    lastKeys[1] = glfwGetKey(win, GLFW_KEY_R) == GLFW_PRESS;
 }
 
 void framebuffer_size_callback(GLFWwindow* win, const int width,const int height)
@@ -122,7 +156,7 @@ int windowinit(const int width, const int height, const char* title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 
     window = glfwCreateWindow(width, height, title, nullptr, nullptr);
