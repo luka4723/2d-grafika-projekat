@@ -20,7 +20,6 @@ add_executable(2d-grafika-projekat
         Cpp/EBO.cpp
         Cpp/helper.cpp
         Cpp/texture.cpp
-        Cpp/camera.cpp
         Cpp/stb_image.cpp
         Cpp/object.cpp
 )

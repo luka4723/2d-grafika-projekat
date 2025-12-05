@@ -2,7 +2,6 @@
 
 #include <array>
 
-#include "camera.hpp"
 #include <iostream>
 #include <random>
 #include <thread>
@@ -11,8 +10,8 @@
 int SCR_WIDTH = 9*32*3 , SCR_HEIGHT = 6*32*3;
 GLFWwindow* window = nullptr;
 float scale =0.0f;
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
+float lastX = static_cast<float>(SCR_WIDTH) / 2.0f;
+float lastY = static_cast<float>(SCR_HEIGHT) / 2.0f;
 bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -31,10 +30,6 @@ double prevRaketa=0;
 bool pecurkaActive=false;
 bool mudActive=false;
 bool blur=false;
-glm::vec4 filt1;
-glm::vec4 filt2;
-glm::vec4 filt3;
-glm::vec4 filt4;
 float k=70.0f;
 float alfa = 0.0f;
 GLuint framebuffer;
@@ -94,7 +89,7 @@ void processInput(GLFWwindow *win)
         screenShader->Activate();
         screenShader->setInt("rotation", rotation);
     }
-    if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS) {
+   /* if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS) {
         Shader testShader("Glsls/testVShader.glsl", "Glsls/testFShader.glsl");
         testShader.Activate();
         for (const object* obj : pickups) {
@@ -123,7 +118,7 @@ void processInput(GLFWwindow *win)
             testVAO.Unbind();
         }
         myShader->Activate();
-    }
+    }*/
 
     lastKeys[0] = glfwGetKey(win, GLFW_KEY_P) == GLFW_PRESS;
     lastKeys[1] = glfwGetKey(win, GLFW_KEY_R) == GLFW_PRESS;
@@ -132,26 +127,6 @@ void processInput(GLFWwindow *win)
 void framebuffer_size_callback(GLFWwindow* win, const int width,const int height)
 {
     glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow* win, const double xposIn, const double yposIn)
-{
-    const auto xpos = static_cast<float>(xposIn);
-    const auto ypos = static_cast<float>(yposIn);
-
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    const float xoffset = xpos - lastX;
-    const float yoffset = lastY - ypos;
-
-    lastX = xpos;
-    lastY = ypos;
-
 }
 
 int windowinit(const int width, const int height, const char* title)
@@ -173,7 +148,6 @@ int windowinit(const int width, const int height, const char* title)
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -232,8 +206,8 @@ void coordSetter(float* verts, const float px, const float py,int &i, const int 
         deltaX = 0.0f;
         deltaY = 0.0f;
     }
-    verts[i++] = (px + deltaX)/SCR_WIDTH*6 -1.0f;
-    verts[i++] = (py + deltaY)/SCR_HEIGHT*6-1.0f;
+    verts[i++] = (px + deltaX)/static_cast<float>(SCR_WIDTH)*6 -1.0f;
+    verts[i++] = (py + deltaY)/static_cast<float>(SCR_HEIGHT)*6-1.0f;
     verts[i++] = 0.0f;
     verts[i++] = off + (deltaX == 0.0f ? 0.0f : offset);
     verts[i++] = deltaY == 0.0f ? 0.0f : 1.0f;
@@ -272,7 +246,7 @@ glm::vec4 HSVtoRGB(const float h) {
 
     const float i =h * 6;
     const float f = h * 6 - i;
-    const float p = v * (1 - s);
+    constexpr float p = v * (1 - s);
     const float q = v * (1 - f * s);
     const float t = v * (1 - (1 - f) * s);
 
@@ -294,7 +268,7 @@ std::vector<float> randomSaturatedColor() {
     std::vector<float> res{};
     res.reserve(4);
     for(int i = 0; i < 4; i++) {
-        res.push_back(i * 0.25f +random(1,100)/100);
+        res.push_back(static_cast<float>(i) * 0.25f +random(1,100)/100);
     }
     return res;
 }
@@ -306,10 +280,10 @@ void handleCollision(const std::string& ime) {
         alfa = random(50,100)/100;
         myShader->setFloat("alfa",alfa);
         const std::vector<float> hsl = randomSaturatedColor();
-        filt1 = HSVtoRGB(hsl[0]);
-        filt2 = HSVtoRGB(hsl[1]);
-        filt3 = HSVtoRGB(hsl[2]);
-        filt4 = HSVtoRGB(hsl[3]);
+        myShader->setVec4("filterColor1", HSVtoRGB(hsl[0]));
+        myShader->setVec4("filterColor2", HSVtoRGB(hsl[1]));
+        myShader->setVec4("filterColor3", HSVtoRGB(hsl[2]));
+        myShader->setVec4("filterColor4", HSVtoRGB(hsl[3]));
     }
     else if (ime == "potion") {
         prevPotion = glfwGetTime();

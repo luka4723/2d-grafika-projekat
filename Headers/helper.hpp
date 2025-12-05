@@ -4,7 +4,6 @@
 #include <vector>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "camera.hpp"
 #include "object.hpp"
 #include "shader.hpp"
 
@@ -40,10 +39,6 @@ extern double prevMud;
 extern bool pecurkaActive;
 extern bool mudActive;
 extern bool blur;
-extern glm::vec4 filt1;
-extern glm::vec4 filt2;
-extern glm::vec4 filt3;
-extern glm::vec4 filt4;
 extern float k;
 extern float alfa;
 extern GLuint framebuffer;

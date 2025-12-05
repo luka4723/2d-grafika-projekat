@@ -1,6 +1,7 @@
 #include "texture.hpp"
+#include "stb_image.hpp"
 
-Texture::Texture(const char* image, GLenum texType, GLenum texSlot, GLenum pixelType, GLenum wrap, int filter)
+Texture::Texture(const char* image, const GLenum texType, const GLenum texSlot, const GLenum pixelType, const GLenum wrap, const int filter)
 {
 	type = texType;
 	slot = texSlot;
@@ -9,7 +10,7 @@ Texture::Texture(const char* image, GLenum texType, GLenum texSlot, GLenum pixel
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* bytes = stbi_load(image, &w, &h, &nrChannels, 0);
 
-    GLenum format;
+    GLenum format=0;
     if (nrChannels == 1)
         format = GL_RED;
     else if (nrChannels == 3)
@@ -32,11 +33,8 @@ Texture::Texture(const char* image, GLenum texType, GLenum texSlot, GLenum pixel
         glTexParameteri(texType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
 
-	glTexParameteri(texType, GL_TEXTURE_WRAP_S, wrap);
-	glTexParameteri(texType, GL_TEXTURE_WRAP_T, wrap);
-
-	// float flatColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-	// glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, flatColor);
+	glTexParameteri(texType, GL_TEXTURE_WRAP_S, static_cast<GLint>(wrap));
+	glTexParameteri(texType, GL_TEXTURE_WRAP_T, static_cast<GLint>(wrap));
 
 	glTexImage2D(texType, 0, format, w, h, 0, format, pixelType, bytes);
 	glGenerateMipmap(texType);
@@ -45,25 +43,21 @@ Texture::Texture(const char* image, GLenum texType, GLenum texSlot, GLenum pixel
 	glBindTexture(texType, 0);
 }
 
-void Texture::texUnit(Shader &shader, const char* uniform)
-{
+void Texture::texUnit(const Shader &shader, const char* uniform) const {
     shader.Activate();
-	GLuint texUni = glGetUniformLocation(shader.ID, uniform);
+	const GLuint texUni = glGetUniformLocation(shader.ID, uniform);
 	glUniform1i(texUni, slot-GL_TEXTURE0);
 }
 
-void Texture::Bind()
-{
+void Texture::Bind() const {
     glActiveTexture(slot);
 	glBindTexture(type, ID);
 }
 
-void Texture::Unbind()
-{
+void Texture::Unbind() const {
 	glBindTexture(type, 0);
 }
 
-void Texture::Delete()
-{
+void Texture::Delete() const {
 	glDeleteTextures(1, &ID);
 }

@@ -2,24 +2,19 @@
 #include <array>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include <ctime>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "shader.hpp"
 #include "VAO.hpp"
 #include "VBO.hpp"
-#include "EBO.hpp"
 #include "helper.hpp"
 #include "stb_image.hpp"
 #include "texture.hpp"
-#include "camera.hpp"
 #include "object.hpp"
 
 int main() {
-	srand(time(nullptr));
-	if (windowinit(SCR_WIDTH, SCR_HEIGHT, "Moj OpenGL Prozor") != 0) return -1;
+	if (windowinit(SCR_WIDTH, SCR_HEIGHT, "2d-domaci") != 0) return -1;
 
 	float vertices[6*tilesX*tilesY*5];
 	float vertices2[6*tilesX*tilesY*5];
@@ -40,15 +35,6 @@ int main() {
 		-1.0f,  1.0f, 0.0f, 1.0f,
 		 1.0f, -1.0f, 1.0f, 0.0f,
 		 1.0f,  1.0f, 1.0f, 1.0f,
-	};
-	float stencilVerts[] ={
-		 0.0f,  0.0f,
-		 0.2f*aspect,  0.0f,
-		 0.2f*aspect,  0.2f,
-
-		 0.0f,  0.0f,
-		 0.0f, 0.2f,
-		 0.2f*aspect,  0.2f
 	};
 	float circleVerts[] = {
 		0.0f * aspect, 0.0f,
@@ -100,16 +86,17 @@ int main() {
 	makeMap(vertices);
 	makeMap(vertices2);
 
-    VAO VAO1,VAO2;
+	const VAO VAO1;
+    const VAO VAO2;
     VAO1.Bind();
 
-    VBO map1(vertices, sizeof(vertices));
+    const VBO map1(vertices, sizeof(vertices));
     VAO1.LinkAttrib(map1,0,3,GL_FLOAT,5*sizeof(float),nullptr);
     VAO1.LinkAttrib(map1,1,2,GL_FLOAT,5*sizeof(float),reinterpret_cast<void *>(3 * sizeof(float)));
 	map1.Unbind();
 
 	VAO2.Bind();
-	VBO map2(vertices2, sizeof(vertices2));
+	const VBO map2(vertices2, sizeof(vertices2));
 	VAO2.LinkAttrib(map2,0,3,GL_FLOAT,5*sizeof(float),nullptr);
 	VAO2.LinkAttrib(map2,1,2,GL_FLOAT,5*sizeof(float),reinterpret_cast<void *>(3 * sizeof(float)));
 	map2.Unbind();
@@ -119,20 +106,20 @@ int main() {
 	car->setHitbox(car->xOff+0.06f,car->yOff,0.22f*aspect,0.405f);
 
 	for (auto & particle : particles) respawnParticle(particle);
-	VAO dots;
+	const VAO dots;
 	dots.Bind();
-	VBO dotVBO(particles,sizeof(particles));
+	const VBO dotVBO(particles,sizeof(particles));
 	dots.LinkAttrib(dotVBO,0,2,GL_FLOAT,sizeof(particle_t),nullptr);
 	dots.Unbind();
 	smokeShader.setVec2("cent",glm::vec2((car->hitbox.x+0.037f+car->hitbox.x+0.037f+0.075f)/2,car->yOff));
 	smokeShader.setVec3("col",0.1,0.1,0.1);
 
-    auto map_tileset = Texture("resources/test2.png",GL_TEXTURE_2D,GL_TEXTURE0,GL_UNSIGNED_BYTE,GL_REPEAT,0);
+    const auto map_tileset = Texture("resources/test2.png",GL_TEXTURE_2D,GL_TEXTURE0,GL_UNSIGNED_BYTE,GL_REPEAT,0);
 	map_tileset.Bind();
 	map_tileset.texUnit(*myShader, "sheet");
 
-	double spawnInterval = random(3,3); // prebaciti na (3,10)
-	double rocketInterval = random(3,10);
+	double spawnInterval = random(3,10);
+	//double rocketInterval = random(3,10);
 
 	double map1Loc=0,map2Loc=2;
 
@@ -195,7 +182,7 @@ int main() {
 				obj->setHitbox(hb_x,hb_y,hb_w,hb_h);
 				if (texpos == 16) dangers.push_back(obj);
 				else pickups.push_back(obj);
-				spawnInterval = random(3,3); // postaviti na (3,10) na kraju
+				spawnInterval = random(3,10);
 				prevEvent = crntTime;
 			}
 			/*if (crntTime - prevRaketa >= rocketInterval) {
@@ -314,35 +301,6 @@ int main() {
 			glDrawArrays(GL_POINTS, 0, MAX_PARTICLES);
 			myShader->Activate();
 
-			if (pecurkaActive) {
-				const float t = static_cast<float>(crntTime) * 1.5f;
-
-				/*filt1.r += (glm::sin(random(1,5)*t)) * 0.005f;
-				filt1.g += (glm::sin(random(1,5)*t)) * 0.005f;
-				filt1.b += (glm::sin(random(1,5)*t)) * 0.005f;
-
-				filt2.r += (glm::sin(random(1,5)*t+3.14f/4) ) * 0.005f;
-				filt2.g += (glm::sin(random(1,5)*t+3.14f/4) ) * 0.005f;
-				filt2.b += (glm::sin(random(1,5)*t+3.14f/4) ) * 0.005f;
-
-				filt3.r += (glm::sin(random(1,5)*t+3.14f/2) ) * 0.005f;
-				filt3.g += (glm::sin(random(1,5)*t+3.14f/2) ) * 0.005f;
-				filt3.b += (glm::sin(random(1,5)*t+3.14f/2)) * 0.005f;
-
-				filt4.r += (glm::sin(random(1,5)*t+3.14f/4*3) ) * 0.005f;
-				filt4.g += (glm::sin(random(1,5)*t+3.14f/4*3) ) * 0.005f;
-				filt4.b += (glm::sin(random(1,5)*t+3.14f/4*3)) * 0.005f;
-
-				filt1 = glm::clamp(filt1, glm::vec4(0.0f), glm::vec4(1.0f));
-				filt2 = glm::clamp(filt2, glm::vec4(0.0f), glm::vec4(1.0f));
-				filt3 = glm::clamp(filt3, glm::vec4(0.0f), glm::vec4(1.0f));
-				filt4 = glm::clamp(filt4, glm::vec4(0.0f), glm::vec4(1.0f));*/
-
-				myShader->setVec4("filterColor1", filt1);
-				myShader->setVec4("filterColor2", filt2);
-				myShader->setVec4("filterColor3", filt3);
-				myShader->setVec4("filterColor4", filt4);
-			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 		if (blur && pause == 0) {
