@@ -17,4 +17,6 @@ Funkcionalnosti:
   na ESC se izlazi iz igre
   Ulica se generiše biranjem nasumičnih tile-ova
 ```
+  [snimak](media/video.mp4)
+
     
