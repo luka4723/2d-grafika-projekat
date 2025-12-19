@@ -17,6 +17,8 @@ Funkcionalnosti:
   na ESC se izlazi iz igre
   Ulica se generiše biranjem nasumičnih tile-ova
   Brzina kretanja se postepeno povecava
+
+  Pokretanje koda: dovoljno je pokrenuti CMakeLists i onda main
 ```
   [snimak](domaci1-demo.mp4)
 
